@@ -105,11 +105,10 @@ footer strong{color:var(--amber)}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, onSnapshot, query, orderBy, limitToLast, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = { apiKey: "AIzaSyBcXm5QQaYCCddVXNgGqTBAszdKEK-0PJQ", authDomain: "multi-service-app-77dd8.firebaseapp.com", projectId: "multi-service-app-77dd8", storageBucket: "multi-service-app-77dd8.appspot.com", messagingSenderId: "123732555482", appId: "1:123732555482:web:ea47c825e0dbb504f597e3" };
-const app = initializeApp(firebaseConfig), auth = getAuth(app), db = getFirestore(app);
+const db = getFirestore(initializeApp(firebaseConfig));
 const $ = id => document.getElementById(id);
 const OPTIONS = [["bunk", "🔥 Let's bunk!"], ["no", "📚 No, I'll attend"], ["maybe", "🤔 Let's see..."]];
 let key, rid, uid, me, myVote = null, lastSend = 0;
@@ -137,10 +136,19 @@ async function open(d) {
 const col = (...p) => collection(db, "bunk_rooms", rid, ...p);
 const dref = (...p) => doc(db, "bunk_rooms", rid, ...p);
 
+/* ---------- anonymous id (no login needed, stays on this device) ---------- */
+function getUid() {
+  try {
+    let u = localStorage.getItem("bunk_uid");
+    if (!u) { u = hex(crypto.getRandomValues(new Uint8Array(16))); localStorage.setItem("bunk_uid", u); }
+    return u;
+  } catch { return hex(crypto.getRandomValues(new Uint8Array(16))); }
+}
+
 /* ---------- join ---------- */
 async function join(pass) {
   await derive(pass);
-  uid = (auth.currentUser || (await signInAnonymously(auth)).user).uid;
+  uid = getUid();
   const mref = dref("members", uid), snap = await getDoc(mref);
   if (snap.exists()) me = snap.data().n;
   else await runTransaction(db, async t => {
@@ -154,8 +162,7 @@ async function join(pass) {
 const ROOM_SECRET = "avcoe-monday-mass-bunk-2026-x7k2"; // fixed room key, change it to start a fresh room
 join(ROOM_SECRET).catch(e => {
   console.error(e);
-  $("me").textContent = e.code === "auth/operation-not-allowed" || e.code === "auth/admin-restricted-operation"
-    ? "Enable Anonymous sign-in in Firebase" : "Couldn't connect, please refresh";
+  $("me").textContent = "Couldn't connect, please refresh";
 });
 
 /* ---------- voting ---------- */
