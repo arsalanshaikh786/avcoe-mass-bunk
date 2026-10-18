@@ -70,10 +70,14 @@ body[data-tab=vote] #chatcard,body[data-tab=chat] #votecard{display:none}
 #msgs{height:calc(100vh - 300px);height:calc(100dvh - 300px);min-height:300px;max-height:none}
 .cin{padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
 .m{max-width:88%}
-footer{margin-top:14px}
+body[data-tab=chat]{position:fixed;top:0;left:0;right:0;height:100vh;height:var(--vh,100dvh);overflow:hidden}
+body[data-tab=chat] .wrap{height:100%;display:flex;flex-direction:column;padding-bottom:0}
+body[data-tab=chat] .badge,body[data-tab=chat] h1,body[data-tab=chat] .sub{display:none}
+body[data-tab=chat] .tabs{margin-top:0}
+body[data-tab=chat] #chatcard{flex:1;min-height:0;margin-bottom:0;border-radius:18px 18px 0 0}
+body[data-tab=chat] #msgs{flex:1;min-height:0;height:auto}
+body[data-tab=chat] .cin{padding-bottom:8px}
 }
-footer{text-align:center;color:var(--muted);font-size:13.5px;margin-top:8px}
-footer strong{color:var(--amber)}
 .hide{display:none}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -100,7 +104,6 @@ footer strong{color:var(--amber)}
     <div id="msgs"><div class="note">🔒 Messages are encrypted. The database only sees gibberish.</div></div>
     <div class="cin"><input id="txt" maxlength="500" autocomplete="off" placeholder="Type a message..." aria-label="Message"><button id="send" aria-label="Send">➤</button></div>
   </section>
-  <footer>Made by <strong>Arsalan Shaikh</strong> &middot; AI &amp; DS Div B</footer>
 </main>
 
 <script type="module">
@@ -236,12 +239,19 @@ $("send").onclick = sendMsg;
 $("txt").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); sendMsg(); } });
 
 /* ---------- mobile tabs ---------- */
+const vv = window.visualViewport;
+function fit() {
+  document.documentElement.style.setProperty("--vh", (vv ? vv.height : innerHeight) + "px");
+  if (document.body.dataset.tab === "chat") window.scrollTo(0, 0);
+}
+vv?.addEventListener("resize", fit); vv?.addEventListener("scroll", fit); addEventListener("resize", fit); fit();
+$("txt").addEventListener("focus", () => setTimeout(() => { box.scrollTop = box.scrollHeight; }, 300));
 let unread = 0, prevCount = 0;
 function showUnread() { const d = $("udot"); d.textContent = unread; d.style.display = unread ? "grid" : "none"; }
 document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
   document.body.dataset.tab = b.dataset.t;
   document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
-  if (b.dataset.t === "chat") { unread = 0; showUnread(); box.scrollTop = box.scrollHeight; }
+  if (b.dataset.t === "chat") { unread = 0; showUnread(); fit(); requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; }); }
 });
 
 </script>
